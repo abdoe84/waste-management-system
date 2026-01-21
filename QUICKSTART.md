@@ -46,27 +46,29 @@ Get your Waste Management System up and running in 5 minutes!
 
 **Option A: Using VS Code Live Server**
 - Install "Live Server" extension
-- Right-click `login.html` → "Open with Live Server"
+- Right-click `index.html` → "Open with Live Server"
+- Or just right-click anywhere and select "Open with Live Server"
 
 **Option B: Using Python**
 ```bash
 python -m http.server 8000
-# Open http://localhost:8000/login.html
+# Open http://localhost:8000 (index.html will load automatically)
 ```
 
 **Option C: Using Node.js**
 ```bash
 npx http-server -p 8000
-# Open http://localhost:8000/login.html
+# Open http://localhost:8000 (index.html will load automatically)
 ```
 
 ## ✅ Test It Works
 
-1. Open `login.html` in browser
-2. Click **"Sign Up"**
-3. Create an account with role **"User"**
-4. Login
-5. Try submitting a request via **"New Request"**
+1. Open `index.html` in browser (or just open the root URL)
+2. You'll be redirected to login page
+3. Click **"Sign Up"**
+4. Create an account with role **"User"**
+5. Login
+6. Try submitting a request via **"New Request"**
 
 ## 🎉 Done!
 

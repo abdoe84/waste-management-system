@@ -103,13 +103,15 @@ Then open `http://localhost:8000` in your browser.
 
 **Option 2: VS Code Live Server**
 - Install the "Live Server" extension in VS Code
-- Right-click on `login.html` and select "Open with Live Server"
+- Right-click on `index.html` and select "Open with Live Server"
+- Or just right-click anywhere and select "Open with Live Server"
 
 **Option 3: GitHub Pages**
 - Push your code to GitHub
 - Go to Repository Settings → Pages
 - Select your branch and `/ (root)` folder
 - Your site will be available at `https://yourusername.github.io/repository-name`
+- The `index.html` file will automatically serve as the entry point
 
 ## 📁 Project Structure
 
