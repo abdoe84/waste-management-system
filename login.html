@@ -14,12 +14,14 @@
             --secondary: #5fc1a8;
             --accent: #6b5b95;
             --light: #e8f5f0;
+            --surface: #f8fbf9;
             --hover: #2d7a5f;
             --danger: #dc2626;
             --gray-600: #4b5563;
             --gray-700: #374151;
             --gray-800: #1f2937;
             --success: #10b981;
+            --shadow-soft: 0 20px 60px rgba(61, 155, 124, 0.18);
         }
 
         * {
@@ -30,7 +32,10 @@
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background:
+                radial-gradient(80% 60% at 20% 20%, rgba(107, 91, 149, 0.12), transparent),
+                radial-gradient(70% 55% at 80% 0%, rgba(95, 193, 168, 0.16), transparent),
+                linear-gradient(135deg, #f0f7f4 0%, #e8f5f0 50%, #f4ecfb 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -79,11 +84,11 @@
         }
 
         .login-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: linear-gradient(145deg, #ffffff 0%, #f8fcfa 80%);
+            border: 1px solid rgba(61, 155, 124, 0.07);
             border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 48px 40px;
+            box-shadow: var(--shadow-soft);
+            padding: 52px 44px;
             width: 100%;
             max-width: 450px;
             position: relative;
@@ -102,9 +107,29 @@
             }
         }
 
-        .logo-container {
+.logo-container {
             text-align: center;
             margin-bottom: 32px;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(61, 155, 124, 0.08);
+            color: var(--gray-700);
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        .brand-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            box-shadow: 0 0 0 6px rgba(61, 155, 124, 0.08);
         }
 
 
@@ -121,7 +146,7 @@
         }
 
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 22px;
         }
 
         .form-label {
@@ -129,11 +154,14 @@
             font-size: 14px;
             font-weight: 500;
             color: var(--gray-700);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            letter-spacing: 0.01em;
         }
 
         .input-wrapper {
             position: relative;
+            display: flex;
+            align-items: center;
         }
 
         .input-icon {
@@ -147,22 +175,31 @@
 
         .form-input {
             width: 100%;
-            padding: 14px 48px 14px 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 16px;
+            padding: 16px 54px 16px 46px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 14px;
+            font-size: 15.5px;
             transition: all 0.3s ease;
-            background: white;
+            background: linear-gradient(120deg, var(--surface), #f1f5f9);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 0 0 rgba(0, 0, 0, 0.02);
+            color: var(--gray-800);
         }
 
         .form-input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(61, 155, 124, 0.1);
+            box-shadow:
+                0 15px 30px rgba(61, 155, 124, 0.12),
+                0 0 0 4px rgba(61, 155, 124, 0.08);
+            background: #fff;
+            transform: translateY(-1px);
         }
 
         .form-input::placeholder {
             color: #9ca3af;
+            opacity: 0.85;
         }
 
         .toggle-password {
@@ -180,7 +217,7 @@
         }
 
         .toggle-password:hover {
-            color: var(--primary);
+            color: var(--hover);
         }
 
         .remember-forgot {
@@ -189,6 +226,7 @@
             align-items: center;
             margin-bottom: 24px;
             font-size: 14px;
+            gap: 12px;
         }
 
         .remember-me {
@@ -239,12 +277,12 @@
         .btn-primary {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: white;
-            box-shadow: 0 4px 15px rgba(61, 155, 124, 0.3);
+            box-shadow: 0 10px 30px rgba(61, 155, 124, 0.35);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(61, 155, 124, 0.4);
+            box-shadow: 0 14px 32px rgba(61, 155, 124, 0.4);
         }
 
         .btn-primary:active {
@@ -308,6 +346,7 @@
             align-items: center;
             gap: 10px;
             animation: slideDown 0.3s ease-out;
+            border: 1px solid rgba(0, 0, 0, 0.03);
         }
 
         @keyframes slideDown {
@@ -352,6 +391,10 @@
     <div class="login-container">
         <div class="logo-container">
             <img src="Logo.png" alt="Reviva Logo" style="max-width: 120px; height: auto; margin-bottom: 20px;">
+            <div class="brand-badge">
+                <span class="brand-dot"></span>
+                Reviva - E&S Sector -MS Form
+            </div>
             <h1 class="login-title">Welcome Back</h1>
             <p class="login-subtitle">Sign in to your account to continue</p>
         </div>
