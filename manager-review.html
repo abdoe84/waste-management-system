@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reviva - Manager Review</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <style>
+        :root {
+            --primary: #3d9b7c;
+            --secondary: #5fc1a8;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e8f5f0 0%, #d4ede3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 24px 32px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-view {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #2d7a5f;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+
+        .btn-reject {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #b91c1c;
+        }
+
+        .btn-secondary {
+            background: var(--gray-600);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-700);
+        }
+
+        .status-filter {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--primary);
+            background: white;
+            color: var(--primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .requests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 24px;
+        }
+
+        .request-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .request-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .request-id {
+            font-size: 14px;
+            color: var(--gray-600);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending_manager_approval {
+            background: #e0e7ff;
+            color: #6366f1;
+        }
+
+        .request-info {
+            margin-bottom: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-label {
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: var(--gray-800);
+            font-weight: 600;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 32px;
+            border-bottom: 2px solid #e5e7eb;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .modal-header h2 {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 32px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 20px 32px;
+            border-top: 2px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            background: #f9fafb;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 28px 0 16px 0;
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title:first-child {
+            margin-top: 0;
+        }
+
+        .stage3-data {
+            background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stage3-data:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(61, 155, 124, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .data-row span:first-child {
+            color: var(--gray-600);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-row span:last-child {
+            color: var(--gray-800);
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-600);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <img src="Logo.png" alt="Reviva Logo" style="max-width: 60px; height: auto;">
+                <h1><i class="fas fa-user-tie"></i> Manager Review</h1>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-view" onclick="window.location.href='dashboard.html'">
+                    <i class="fas fa-home"></i> Dashboard
+                </button>
+                <button class="btn btn-reject" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="status-filter">
+            <button class="filter-btn active" data-status="pending_manager_approval">Pending Approval</button>
+            <button class="filter-btn" data-status="manager_approved">Approved</button>
+            <button class="filter-btn" data-status="manager_rejected">Rejected</button>
+            <button class="filter-btn" data-status="all">All</button>
+        </div>
+
+        <div class="requests-grid" id="requestsGrid">
+            <!-- Requests will be loaded here -->
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div class="modal" id="viewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-alt"></i> Request Details</h2>
+                <button class="close-btn" onclick="closeModal('viewModal')" title="Close">&times;</button>
+            </div>
+            <div class="modal-body" id="requestDetails">
+                <!-- Details will be loaded here -->
+            </div>
+            <div class="modal-footer" id="viewModalFooter" style="display: none;">
+                <!-- Action buttons will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class="modal" id="rejectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-times-circle"></i> Reject Request</h2>
+                <button class="close-btn" onclick="closeModal('rejectModal')" title="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <input type="hidden" id="rejectFormId">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 14px; font-weight: 600; color: var(--gray-700); margin-bottom: 10px;">Reason for Rejection *</label>
+                        <textarea 
+                            id="rejectionReason" 
+                            class="form-textarea" 
+                            placeholder="Please provide a detailed reason for rejecting this request..."
+                            required
+                            style="width: 100%; padding: 14px; border: 2px solid #e5e7eb; border-radius: 12px; min-height: 150px; font-size: 14px; font-family: inherit; resize: vertical; transition: all 0.3s ease;"
+                            onfocus="this.style.borderColor='var(--danger)'; this.style.boxShadow='0 0 0 3px rgba(220, 38, 38, 0.1)'"
+                            onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'"
+                        ></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('rejectModal')">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" form="rejectForm" class="btn btn-reject">
+                    <i class="fas fa-ban"></i> Reject Request
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseClient = window.supabaseClient || (() => {
+            if (typeof CONFIG !== 'undefined' && typeof supabase !== 'undefined') {
+                return supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+            }
+            const SUPABASE_URL = 'https://gcxvaclwugxdzwqbwtlx.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjeHZhY2x3dWd4ZHp3cWJ3dGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NTQzNjYsImV4cCI6MjA4MTEzMDM2Nn0.jcRRo-oUjKp7pNvSzq8Rw7mJRk_htfN87VGG3j7TCBs';
+            return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        })();
+
+        let currentFilter = 'pending_manager_approval';
+        let requests = [];
+
+        // Check authentication
+        async function checkAuth() {
+            const user = await getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            const role = user.role || 'user';
+            if (role !== 'manager' && role !== 'admin') {
+                alert('You do not have permission to access this page.');
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Load requests
+        async function loadRequests(status = 'pending_manager_approval') {
+            const grid = document.getElementById('requestsGrid');
+            grid.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading requests...</p></div>';
+
+            try {
+                let query = supabaseClient
+                    .from('ms_forms')
+                    .select('*, ms_form_items(*), ms_stage3_data(*), ms_form_attachments(*)')
+                    .order('submitted_at', { ascending: false });
+
+                if (status !== 'all') {
+                    query = query.eq('status', status);
+                } else {
+                    query = query.in('status', ['pending_manager_approval', 'manager_approved', 'manager_rejected']);
+                }
+
+                const { data, error } = await query;
+
+                if (error) {
+                    console.error('Error loading requests:', error);
+                    showAlert('Error loading requests: ' + (error.message || 'Unknown error'), 'danger');
+                    return;
+                }
+
+                requests = data || [];
+
+                // Load Stage 3 attachments separately if table exists
+                console.log(`[Manager Review] Loading Stage 3 attachments for ${requests.length} request(s)`);
+                for (let request of requests) {
+                    try {
+                        const { data: stage3Attachments, error: attachError } = await supabaseClient
+                            .from('ms_stage3_attachments')
+                            .select('*')
+                            .eq('form_id', request.id);
+
+                        if (attachError) {
+                            console.error(`[Manager Review] Error loading attachments for form ${request.id}:`, attachError);
+                            request.ms_stage3_attachments = [];
+                        } else {
+                            request.ms_stage3_attachments = stage3Attachments || [];
+                            if (stage3Attachments && stage3Attachments.length > 0) {
+                                console.log(`[Manager Review] Form ${request.id}: Loaded ${stage3Attachments.length} attachment(s)`);
+                            }
+                        }
+                    } catch (attachError) {
+                        // Table might not exist yet, set empty array
+                        request.ms_stage3_attachments = [];
+                        console.warn(`[Manager Review] Could not load Stage 3 attachments for form ${request.id}:`, attachError);
+                    }
+                }
+                console.log(`[Manager Review] Finished loading attachments`);
+
+                renderRequests(requests);
+            } catch (err) {
+                console.error('Unexpected error:', err);
+                showAlert('Error loading requests. Please ensure the database is properly configured.', 'danger');
+            }
+        }
+
+        // Render requests
+        function renderRequests(requestsList) {
+            const grid = document.getElementById('requestsGrid');
+            
+            if (requestsList.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No requests found</p></div>';
+                return;
+            }
+
+            grid.innerHTML = requestsList.map(request => `
+                <div class="request-card">
+                    <div class="request-header">
+                        <div>
+                            <div class="request-id">Request #${request.id}</div>
+                            <div style="margin-top: 8px; font-size: 14px; color: var(--gray-600);">
+                                ${new Date(request.submitted_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <span class="status-badge status-${request.status}">${request.status.replace('_', ' ')}</span>
+                    </div>
+                    <div class="request-info">
+                        <div class="info-row">
+                            <span class="info-label">Requester:</span>
+                            <span class="info-value">${request.name}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Department:</span>
+                            <span class="info-value">${request.department}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Location:</span>
+                            <span class="info-value">${request.location}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Items:</span>
+                            <span class="info-value">${request.ms_form_items?.length || 0}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Stage 3 Data:</span>
+                            <span class="info-value">${request.ms_stage3_data?.length > 0 ? 'Yes' : 'No'}</span>
+                        </div>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn btn-view" onclick="viewRequest(${request.id})">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        ${request.status === 'pending_manager_approval' ? `
+                            <button class="btn btn-approve" onclick="approveRequest(${request.id})">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-reject" onclick="openRejectModal(${request.id})">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // View request details
+        async function viewRequest(formId) {
+            const request = requests.find(r => r.id === formId);
+            if (!request) return;
+
+            // Always reload Stage 3 attachments to ensure fresh data
+            try {
+                console.log(`[Manager Review] Loading Stage 3 attachments for form ${formId}`);
+                const { data: stage3Attachments, error: attachError } = await supabaseClient
+                    .from('ms_stage3_attachments')
+                    .select('*')
+                    .eq('form_id', formId);
+                
+                if (attachError) {
+                    console.error(`[Manager Review] Error loading attachments:`, attachError);
+                    request.ms_stage3_attachments = [];
+                } else {
+                    console.log(`[Manager Review] Loaded ${stage3Attachments?.length || 0} attachment(s) for form ${formId}:`, stage3Attachments);
+                    request.ms_stage3_attachments = stage3Attachments || [];
+                    
+                    // Also log attachment details
+                    if (stage3Attachments && stage3Attachments.length > 0) {
+                        stage3Attachments.forEach((att, idx) => {
+                            console.log(`[Manager Review] Attachment ${idx + 1}:`, {
+                                id: att.id,
+                                form_id: att.form_id,
+                                item_id: att.item_id,
+                                stage3_data_id: att.stage3_data_id,
+                                filename: att.filename || att.file_name,
+                                file_url: att.file_url
+                            });
+                        });
+                    }
+                }
+            } catch (attachError) {
+                console.error('[Manager Review] Could not load Stage 3 attachments:', attachError);
+                request.ms_stage3_attachments = [];
+            }
+
+            const details = `
+                <div style="background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 2px solid #e5e7eb;">
+                    <div class="section-title" style="margin-top: 0;"><i class="fas fa-info-circle"></i> Request Information</div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-hashtag"></i> Request ID:</span>
+                        <span class="info-value">#${request.id}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-user"></i> Requester:</span>
+                        <span class="info-value">${request.name}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-envelope"></i> Email:</span>
+                        <span class="info-value">${request.email}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-building"></i> Department:</span>
+                        <span class="info-value">${request.department}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-map-marker-alt"></i> Location:</span>
+                        <span class="info-value">${request.location}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-calendar"></i> Submitted:</span>
+                        <span class="info-value">${new Date(request.submitted_at).toLocaleDateString()} ${new Date(request.submitted_at).toLocaleTimeString()}</span>
+                    </div>
+                    ${request.description ? `
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #e5e7eb;">
+                            <div style="font-weight: 600; margin-bottom: 8px; color: var(--gray-700);"><i class="fas fa-align-left"></i> Description:</div>
+                            <div style="padding: 12px; background: white; border-radius: 8px; color: var(--gray-700); line-height: 1.6;">${request.description}</div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                <div class="section-title"><i class="fas fa-box"></i> Waste Items & Stage 3 Data</div>
+                ${request.ms_form_items?.map((item, idx) => {
+                    const stage3Data = request.ms_stage3_data?.find(s => s.item_id === item.id);
+                    
+                    // Get attachments for this item - try multiple matching strategies
+                    let stage3Attachments = request.ms_stage3_attachments?.filter(a => {
+                        // First try exact item_id match
+                        if (a.item_id === item.id) return true;
+                        // If stage3_data_id exists, match by that too
+                        if (a.stage3_data_id && stage3Data && a.stage3_data_id === stage3Data.id) return true;
+                        return false;
+                    }) || [];
+                    
+                    // If no attachments found for this item but there are attachments for this form, log it
+                    if (!stage3Attachments.length && request.ms_stage3_attachments?.length > 0) {
+                        console.warn(`[Manager Review] Item ${item.id}: No attachments found, but form has ${request.ms_stage3_attachments.length} total attachment(s)`);
+                        console.log(`[Manager Review] All form attachments:`, request.ms_stage3_attachments);
+                    }
+                    
+                    console.log(`[Manager Review] Item ${item.id}: Stage3 data: ${stage3Data ? 'Yes (ID: ' + stage3Data.id + ')' : 'No'}, Attachments: ${stage3Attachments.length}`);
+                    if (stage3Attachments.length > 0) {
+                        console.log(`[Manager Review] Item ${item.id} attachments:`, stage3Attachments);
+                    }
+                    
+                    return `
+                        <div class="stage3-data">
+                            <div style="font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-cube"></i> Item ${idx + 1}: ${item.waste_name}
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                                <div class="data-row" style="flex-direction: column; align-items: flex-start; border: none; padding: 0;">
+                                    <span style="color: var(--gray-600); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Physical State</span>
+                                    <span style="color: var(--gray-800); font-weight: 700; font-size: 16px; margin-top: 4px;"><i class="fas fa-flask"></i> ${item.physical_state}</span>
+                                </div>
+                                <div class="data-row" style="flex-direction: column; align-items: flex-start; border: none; padding: 0;">
+                                    <span style="color: var(--gray-600); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Quantity</span>
+                                    <span style="color: var(--gray-800); font-weight: 700; font-size: 16px; margin-top: 4px;"><i class="fas fa-weight"></i> ${item.quantity} ${item.quantity_unit || ''}</span>
+                                </div>
+                            </div>
+                            ${stage3Data ? `
+                                <div style="margin-top: 20px; padding-top: 20px; border-top: 3px solid var(--primary); background: white; border-radius: 12px; padding: 16px;">
+                                    <div style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                                        <i class="fas fa-clipboard-check"></i> Stage 3 Data
+                                    </div>
+                                    <div class="data-row"><span><i class="fas fa-barcode"></i> WAP Number:</span><span>${stage3Data.wap_number || 'N/A'}</span></div>
+                                    <div class="data-row"><span><i class="fas fa-exclamation-triangle"></i> Hazardous Classification:</span><span style="font-weight: 700; color: ${stage3Data.hazardous_classification === 'Hazardous' ? 'var(--danger)' : 'var(--success)'};">${stage3Data.hazardous_classification || 'N/A'}</span></div>
+                                    ${stage3Data.treatment_codes?.length > 0 ? `<div class="data-row"><span><i class="fas fa-wrench"></i> Treatment Codes:</span><span>${stage3Data.treatment_codes.map(c => `<span style="background: #e0e7ff; color: #6366f1; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 6px;">${c}</span>`).join('')}</span></div>` : ''}
+                                    ${stage3Data.discharge_codes?.length > 0 ? `<div class="data-row"><span><i class="fas fa-trash-alt"></i> Disposal Codes:</span><span>${stage3Data.discharge_codes.map(c => `<span style="background: #dbeafe; color: #2563eb; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 6px;">${c}</span>`).join('')}</span></div>` : ''}
+                                    ${stage3Data.recycle_codes?.length > 0 ? `<div class="data-row"><span><i class="fas fa-recycle"></i> Recycle Codes:</span><span>${stage3Data.recycle_codes.map(c => `<span style="background: #d1fae5; color: #059669; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 6px;">${c}</span>`).join('')}</span></div>` : ''}
+                                    ${stage3Data.recovered_materials?.length > 0 ? `<div class="data-row"><span><i class="fas fa-recycle"></i> Recycle Codes:</span><span>${stage3Data.recovered_materials.map(m => `<span style="background: #fef3c7; color: #d97706; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 6px;">${m}</span>`).join('')}</span></div>` : ''}
+                                    <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #e5e7eb; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px;">
+                                        ${stage3Data.oil_percent ? `<div style="text-align: center; padding: 12px; background: #fef3c7; border-radius: 8px;"><div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Oil %</div><div style="font-size: 20px; font-weight: 700; color: #d97706;">${stage3Data.oil_percent}%</div></div>` : ''}
+                                        ${stage3Data.water_percent ? `<div style="text-align: center; padding: 12px; background: #dbeafe; border-radius: 8px;"><div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Water %</div><div style="font-size: 20px; font-weight: 700; color: #2563eb;">${stage3Data.water_percent}%</div></div>` : ''}
+                                        ${stage3Data.sludge_percent ? `<div style="text-align: center; padding: 12px; background: #e5e7eb; border-radius: 8px;"><div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Sludge %</div><div style="font-size: 20px; font-weight: 700; color: var(--gray-700);">${stage3Data.sludge_percent}%</div></div>` : ''}
+                                        ${stage3Data.solvent_percent ? `<div style="text-align: center; padding: 12px; background: #e0e7ff; border-radius: 8px;"><div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Solvent %</div><div style="font-size: 20px; font-weight: 700; color: #6366f1;">${stage3Data.solvent_percent}%</div></div>` : ''}
+                                        ${stage3Data.recovery_percent ? `<div style="text-align: center; padding: 12px; background: #d1fae5; border-radius: 8px;"><div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Recovery %</div><div style="font-size: 20px; font-weight: 700; color: var(--success);">${stage3Data.recovery_percent}%</div></div>` : ''}
+                                        ${stage3Data.landfill_percent ? `<div style="text-align: center; padding: 12px; background: #fee2e2; border-radius: 8px;"><div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Landfill %</div><div style="font-size: 20px; font-weight: 700; color: var(--danger);">${stage3Data.landfill_percent}%</div></div>` : ''}
+                                        ${stage3Data.evaporation_pond_percent ? `<div style="text-align: center; padding: 12px; background: #fce7f3; border-radius: 8px;"><div style="font-size: 12px; color: var(--gray-600); margin-bottom: 4px;">Evaporation %</div><div style="font-size: 20px; font-weight: 700; color: #be185d;">${stage3Data.evaporation_pond_percent}%</div></div>` : ''}
+                                    </div>
+                                </div>
+                            ` : '<div style="margin-top: 16px; padding: 16px; background: #fef3c7; border-radius: 8px; color: var(--warning); text-align: center; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> No Stage 3 data available for this item</div>'}
+                            ${stage3Attachments && stage3Attachments.length > 0 ? `
+                                <div style="margin-top: 20px; padding-top: 20px; border-top: 3px solid var(--info); background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 12px; padding: 20px; border-left: 4px solid var(--info); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);">
+                                    <div style="font-size: 16px; font-weight: 700; color: var(--info); margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+                                        <i class="fas fa-paperclip" style="font-size: 18px;"></i> Stage 3 Attachments (${stage3Attachments.length})
+                                    </div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                                        ${stage3Attachments.map(att => {
+                                            const fileUrl = att.file_url || att.file_url || '#';
+                                            const fileName = att.filename || att.file_name || 'Attachment';
+                                            console.log(`[Manager Review] Rendering attachment: ${fileName} -> ${fileUrl}`);
+                                            return `
+                                            <a href="${fileUrl}" target="_blank" rel="noopener" 
+                                               style="background: white; border: 2px solid #2563eb; border-radius: 12px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 10px; color: #0369a1; text-decoration: none; font-weight: 600; font-size: 14px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); cursor: pointer; min-width: 180px;"
+                                               onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.3)';"
+                                               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(37, 99, 235, 0.2)';">
+                                                <i class="fas fa-file" style="font-size: 16px; color: #2563eb;"></i>
+                                                <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fileName}</span>
+                                                <i class="fas fa-external-link-alt" style="font-size: 12px;"></i>
+                                            </a>
+                                        `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            ` : stage3Data ? `
+                                <div style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b; text-align: center;">
+                                    <i class="fas fa-info-circle" style="color: #d97706; margin-right: 8px;"></i>
+                                    <span style="color: #92400e; font-weight: 600;">No attachments uploaded for this item</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('') || '<div style="padding: 24px; text-align: center; color: var(--gray-600);"><i class="fas fa-inbox" style="font-size: 48px; opacity: 0.5; margin-bottom: 12px;"></i><p>No items found</p></div>'}
+            `;
+
+            document.getElementById('requestDetails').innerHTML = details;
+            
+            // Add action buttons in footer if status is pending_manager_approval
+            const footer = document.getElementById('viewModalFooter');
+            if (request.status === 'pending_manager_approval') {
+                footer.style.display = 'flex';
+                footer.innerHTML = `
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('viewModal')">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button type="button" class="btn btn-reject" onclick="closeModal('viewModal'); setTimeout(() => openRejectModal(${request.id}), 300);">
+                        <i class="fas fa-times-circle"></i> Reject
+                    </button>
+                    <button type="button" class="btn btn-approve" onclick="closeModal('viewModal'); setTimeout(() => approveRequest(${request.id}), 300);">
+                        <i class="fas fa-check-circle"></i> Approve
+                    </button>
+                `;
+            } else {
+                footer.style.display = 'none';
+            }
+            
+            document.getElementById('viewModal').classList.add('active');
+        }
+
+        // Approve request
+        async function approveRequest(formId) {
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                
+                const { error } = await supabaseClient
+                    .from('ms_forms')
+                    .update({
+                        status: 'manager_approved',
+                        manager_id: user.id,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', formId);
+
+                if (error) throw error;
+
+                await supabaseClient
+                    .from('ms_reviews')
+                    .insert({
+                        form_id: formId,
+                        reviewer_id: user.id,
+                        review_type: 'manager_review',
+                        action: 'approve'
+                    });
+
+                showAlert('Request approved successfully!', 'success');
+                loadRequests(currentFilter);
+            } catch (error) {
+                console.error('Approve error:', error);
+                showAlert('Error approving request: ' + error.message, 'danger');
+            }
+        }
+
+        // Open reject modal
+        function openRejectModal(formId) {
+            document.getElementById('rejectFormId').value = formId;
+            document.getElementById('rejectModal').classList.add('active');
+        }
+
+        // Reject request
+        async function rejectRequest(formId, reason) {
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                
+                const { error } = await supabaseClient
+                    .from('ms_forms')
+                    .update({
+                        status: 'manager_rejected',
+                        rejection_reason: reason,
+                        manager_id: user.id,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', formId);
+
+                if (error) throw error;
+
+                await supabaseClient
+                    .from('ms_reviews')
+                    .insert({
+                        form_id: formId,
+                        reviewer_id: user.id,
+                        review_type: 'manager_review',
+                        action: 'reject',
+                        comments: reason
+                    });
+
+                showAlert('Request rejected successfully!', 'success');
+                closeModal('rejectModal');
+                loadRequests(currentFilter);
+            } catch (error) {
+                console.error('Reject error:', error);
+                showAlert('Error rejecting request: ' + error.message, 'danger');
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.style.animation = 'fadeOut 0.2s ease-out';
+            setTimeout(() => {
+                modal.classList.remove('active');
+                modal.style.animation = '';
+            }, 200);
+            if (modalId === 'rejectModal') {
+                document.getElementById('rejectForm').reset();
+            }
+        }
+
+        // Close modal on background click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                closeModal(e.target.id);
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const activeModal = document.querySelector('.modal.active');
+                if (activeModal) {
+                    closeModal(activeModal.id);
+                }
+            }
+        });
+
+        // Handle reject form
+        document.getElementById('rejectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formId = parseInt(document.getElementById('rejectFormId').value);
+            const reason = document.getElementById('rejectionReason').value;
+            await rejectRequest(formId, reason);
+        });
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.status;
+                loadRequests(currentFilter);
+            });
+        });
+
+        // Logout
+        function logout() {
+            supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        }
+
+        // Show alert
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 3000);
+        }
+
+        // Make functions global
+        window.viewRequest = viewRequest;
+        window.openRejectModal = openRejectModal;
+        window.closeModal = closeModal;
+        window.approveRequest = approveRequest;
+
+        // Initialize
+        (async () => {
+            if (await checkAuth()) {
+                loadRequests();
+            }
+        })();
+    </script>
+</body>
+</html>

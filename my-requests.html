@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Requests - Waste Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <style>
+        :root {
+            --primary: #3d9b7c;
+            --secondary: #2d7a5f;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f0f9f4 0%, #e0f2e9 100%);
+            min-height: 100vh;
+            padding: 24px;
+            color: var(--gray-800);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, white 0%, #f9fafb 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            padding: 28px 36px;
+            margin-bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(61, 155, 124, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 32px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(61, 155, 124, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(61, 155, 124, 0.4);
+        }
+
+        .status-filter {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 12px 24px;
+            border: 2px solid var(--gray-300);
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(61, 155, 124, 0.3);
+        }
+
+        .requests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 28px;
+        }
+
+        .request-card {
+            background: linear-gradient(135deg, white 0%, #fafafa 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            padding: 28px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .request-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .request-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 12px 40px rgba(61, 155, 124, 0.15);
+            border-color: var(--primary);
+        }
+
+        .request-card:hover::before {
+            transform: scaleY(1);
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #f3f4f6;
+        }
+
+        .request-id {
+            font-size: 18px;
+            color: var(--primary);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .request-date {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .status-badge.under_review {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .status-badge.approved_review,
+        .status-badge.technical_approved {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .status-badge.rejected,
+        .status-badge.technical_rejected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .status-badge.stage3_filled,
+        .status-badge.pending_manager_approval {
+            background: #e0e7ff;
+            color: #6366f1;
+        }
+
+        .status-badge.manager_approved {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .status-badge.manager_rejected {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .status-badge.completed {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #047857;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .request-info {
+            margin-bottom: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: var(--gray-600);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: var(--gray-800);
+            font-weight: 500;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f3f4f6;
+        }
+
+        .btn-view {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(61, 155, 124, 0.3);
+        }
+
+        .btn-view:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(61, 155, 124, 0.4);
+        }
+
+        .notification-banner {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border-left: 4px solid var(--info);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .notification-banner.success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-left-color: var(--success);
+        }
+
+        .notification-banner.warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left-color: var(--warning);
+        }
+
+        .notification-banner.danger {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border-left-color: var(--danger);
+        }
+
+        .notification-icon {
+            font-size: 24px;
+            color: var(--info);
+        }
+
+        .notification-banner.success .notification-icon {
+            color: var(--success);
+        }
+
+        .notification-banner.warning .notification-icon {
+            color: var(--warning);
+        }
+
+        .notification-banner.danger .notification-icon {
+            color: var(--danger);
+        }
+
+        .notification-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--gray-600);
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .empty-state i {
+            font-size: 80px;
+            margin-bottom: 24px;
+            opacity: 0.5;
+            color: var(--primary);
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 12px;
+            color: var(--gray-800);
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            color: var(--gray-600);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 24px 28px;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 28px;
+        }
+
+        .detail-section {
+            margin-bottom: 28px;
+            padding-bottom: 28px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .detail-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .detail-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .detail-item {
+            background: var(--gray-50);
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: var(--gray-600);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .detail-value {
+            font-size: 15px;
+            color: var(--gray-800);
+            font-weight: 500;
+        }
+
+        .rejection-reason {
+            background: #fee2e2;
+            border-left: 4px solid var(--danger);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .rejection-reason-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rejection-reason-text {
+            font-size: 14px;
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+
+        .timeline {
+            margin-top: 24px;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 32px;
+            bottom: -20px;
+            width: 2px;
+            background: var(--gray-200);
+        }
+
+        .timeline-item:last-child::before {
+            display: none;
+        }
+
+        .timeline-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .timeline-content {
+            flex: 1;
+            background: var(--gray-50);
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .timeline-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .timeline-date {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <img src="Logo.png" alt="Logo" style="max-width: 60px; height: auto;">
+                <h1><i class="fas fa-file-invoice"></i> My Requests</h1>
+            </div>
+            <div class="header-actions">
+                <a href="dashboard.html" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="status-filter">
+            <button class="filter-btn active" data-status="all">
+                <i class="fas fa-list"></i> All
+            </button>
+            <button class="filter-btn" data-status="pending">
+                <i class="fas fa-clock"></i> Pending
+            </button>
+            <button class="filter-btn" data-status="under_review">
+                <i class="fas fa-eye"></i> Under Review
+            </button>
+            <button class="filter-btn" data-status="approved">
+                <i class="fas fa-check-circle"></i> Approved
+            </button>
+            <button class="filter-btn" data-status="completed">
+                <i class="fas fa-check-double"></i> Completed
+            </button>
+            <button class="filter-btn" data-status="rejected">
+                <i class="fas fa-times-circle"></i> Rejected
+            </button>
+        </div>
+
+        <div class="requests-grid" id="requestsGrid">
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading your requests...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div class="modal" id="viewModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-file-alt"></i> Request Details</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Details will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseClient = window.supabaseClient || (() => {
+            if (typeof CONFIG !== 'undefined' && typeof supabase !== 'undefined') {
+                return supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+            }
+            const SUPABASE_URL = 'https://gcxvaclwugxdzwqbwtlx.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjeHZhY2x3dWd4ZHp3cWJ3dGx4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NTQzNjYsImV4cCI6MjA4MTEzMDM2Nn0.jcRRo-oUjKp7pNvSzq8Rw7mJRk_htfN87VGG3j7TCBs';
+            return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        })();
+
+        let currentUser = null;
+        let allRequests = [];
+        let currentFilter = 'all';
+
+        // Check authentication
+        async function checkAuth() {
+            const user = await getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            currentUser = user;
+            return true;
+        }
+
+        // Load requests
+        async function loadRequests() {
+            if (!currentUser) return;
+
+            const { data: requests, error } = await supabaseClient
+                .from('ms_forms')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('submitted_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading requests:', error);
+                showAlert('Error loading requests. Please try again.', 'danger');
+                return;
+            }
+
+            allRequests = requests || [];
+            filterRequests();
+        }
+
+        // Filter requests
+        function filterRequests() {
+            let filtered = allRequests;
+
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'approved') {
+                    filtered = allRequests.filter(r => 
+                        r.status === 'approved_review' || 
+                        r.status === 'technical_approved' ||
+                        r.status === 'pending_manager_approval' ||
+                        r.status === 'stage3_filled'
+                    );
+                } else if (currentFilter === 'completed') {
+                    filtered = allRequests.filter(r => 
+                        r.status === 'manager_approved' || 
+                        r.status === 'completed'
+                    );
+                } else if (currentFilter === 'rejected') {
+                    filtered = allRequests.filter(r => 
+                        r.status === 'rejected' || 
+                        r.status === 'technical_rejected' ||
+                        r.status === 'manager_rejected'
+                    );
+                } else {
+                    filtered = allRequests.filter(r => r.status === currentFilter);
+                }
+            }
+
+            displayRequests(filtered);
+        }
+
+        // Display requests
+        function displayRequests(requests) {
+            const grid = document.getElementById('requestsGrid');
+
+            if (requests.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No requests found</h3>
+                        <p>${currentFilter === 'all' ? 'You haven\'t submitted any requests yet.' : `No ${currentFilter} requests found.`}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = requests.map(request => {
+                const statusClass = getStatusClass(request.status);
+                const statusText = getStatusText(request.status);
+                const date = new Date(request.submitted_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="request-card">
+                        <div class="request-header">
+                            <div>
+                                <div class="request-id">Request #${request.id}</div>
+                                <div class="request-date">
+                                    <i class="fas fa-calendar"></i> ${date}
+                                </div>
+                            </div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="request-info">
+                            <div class="info-row">
+                                <span class="info-label"><i class="fas fa-user"></i> Name</span>
+                                <span class="info-value">${request.name}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label"><i class="fas fa-building"></i> Department</span>
+                                <span class="info-value">${request.department}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label"><i class="fas fa-map-marker-alt"></i> Location</span>
+                                <span class="info-value">${request.location}</span>
+                            </div>
+                        </div>
+                        ${request.rejection_reason ? `
+                            <div class="notification-banner danger">
+                                <i class="fas fa-exclamation-circle notification-icon"></i>
+                                <div class="notification-text">
+                                    <strong>Rejection Reason:</strong> ${request.rejection_reason}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${request.status === 'completed' || request.status === 'manager_approved' ? `
+                            <div class="notification-banner success">
+                                <i class="fas fa-check-circle notification-icon"></i>
+                                <div class="notification-text">
+                                    <strong>Request Completed!</strong> Your request has been fully approved and processed. Stage 3 environmental data is available for viewing in the details.
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${request.status === 'pending_manager_approval' || request.status === 'stage3_filled' ? `
+                            <div class="notification-banner info">
+                                <i class="fas fa-info-circle notification-icon"></i>
+                                <div class="notification-text">
+                                    <strong>Awaiting Manager Approval</strong> Stage 3 data has been filled by the technical team and is pending manager review.
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="request-actions">
+                            <button class="btn-view" onclick="viewRequest(${request.id})">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            const statusMap = {
+                'pending': 'pending',
+                'under_review': 'under_review',
+                'approved_review': 'approved_review',
+                'technical_approved': 'approved_review',
+                'rejected': 'rejected',
+                'technical_rejected': 'rejected',
+                'stage3_filled': 'pending_manager_approval',
+                'pending_manager_approval': 'pending_manager_approval',
+                'manager_approved': 'manager_approved',
+                'manager_rejected': 'manager_rejected',
+                'completed': 'completed'
+            };
+            return statusMap[status] || 'pending';
+        }
+
+        // Get status text
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'Pending',
+                'under_review': 'Under Review',
+                'approved_review': 'Approved (Technical)',
+                'technical_approved': 'Approved (Technical)',
+                'rejected': 'Rejected',
+                'technical_rejected': 'Rejected',
+                'stage3_filled': 'Pending Manager',
+                'pending_manager_approval': 'Pending Manager',
+                'manager_approved': 'Manager Approved',
+                'manager_rejected': 'Manager Rejected',
+                'completed': 'Completed ✓'
+            };
+            return statusMap[status] || status;
+        }
+
+        // View request details
+        async function viewRequest(requestId) {
+            const request = allRequests.find(r => r.id === requestId);
+            if (!request) return;
+
+            // Load items
+            const { data: items } = await supabaseClient
+                .from('ms_form_items')
+                .select('*')
+                .eq('form_id', requestId);
+
+            // Load attachments
+            const { data: attachments } = await supabaseClient
+                .from('ms_form_attachments')
+                .select('*')
+                .eq('form_id', requestId);
+
+            // Load stage3 data if exists (using form_id)
+            const { data: stage3DataArray } = await supabaseClient
+                .from('ms_stage3_data')
+                .select('*')
+                .eq('form_id', requestId);
+
+            const stage3Data = stage3DataArray && stage3DataArray.length > 0 ? stage3DataArray[0] : null;
+
+            // Load Stage 3 attachments
+            console.log(`[My Requests] Loading Stage 3 attachments for request ${requestId}`);
+            const { data: stage3AttachmentsArray, error: stage3AttachError } = await supabaseClient
+                .from('ms_stage3_attachments')
+                .select('*')
+                .eq('form_id', requestId);
+
+            if (stage3AttachError) {
+                console.error(`[My Requests] Error loading attachments:`, stage3AttachError);
+            } else {
+                console.log(`[My Requests] Loaded ${stage3AttachmentsArray?.length || 0} attachment(s):`, stage3AttachmentsArray);
+            }
+
+            const modal = document.getElementById('viewModal');
+            const modalBody = document.getElementById('modalBody');
+
+            modalBody.innerHTML = `
+                <div class="detail-section">
+                    <h3 class="detail-title"><i class="fas fa-info-circle"></i> Request Information</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Request ID</div>
+                            <div class="detail-value">#${request.id}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Status</div>
+                            <div class="detail-value">
+                                <span class="status-badge ${getStatusClass(request.status)}">${getStatusText(request.status)}</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Name</div>
+                            <div class="detail-value">${request.name}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Email</div>
+                            <div class="detail-value">${request.email}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Department</div>
+                            <div class="detail-value">${request.department}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Location</div>
+                            <div class="detail-value">${request.location}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Submitted At</div>
+                            <div class="detail-value">${new Date(request.submitted_at).toLocaleString()}</div>
+                        </div>
+                        ${request.reviewed_at ? `
+                            <div class="detail-item">
+                                <div class="detail-label">Reviewed At</div>
+                                <div class="detail-value">${new Date(request.reviewed_at).toLocaleString()}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                    ${request.description ? `
+                        <div class="detail-item" style="margin-top: 16px;">
+                            <div class="detail-label">Description</div>
+                            <div class="detail-value">${request.description}</div>
+                        </div>
+                    ` : ''}
+                </div>
+
+                ${items && items.length > 0 ? `
+                    <div class="detail-section">
+                        <h3 class="detail-title"><i class="fas fa-boxes"></i> Request Items (${items.length})</h3>
+                        ${items.map((item, idx) => `
+                            <div class="detail-item" style="margin-bottom: 16px;">
+                                <div class="detail-label">Item ${idx + 1}</div>
+                                <div class="detail-value">
+                                    <strong>Waste Type:</strong> ${item.waste_type || 'N/A'}<br>
+                                    <strong>Quantity:</strong> ${item.quantity || 'N/A'}<br>
+                                    ${item.waste_description ? `<strong>Description:</strong> ${item.waste_description}<br>` : ''}
+                                    ${item.truck_type ? `<strong>Truck Type:</strong> ${item.truck_type}` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+
+                ${attachments && attachments.length > 0 ? `
+                    <div class="detail-section">
+                        <h3 class="detail-title"><i class="fas fa-paperclip"></i> Attachments (${attachments.length})</h3>
+                        ${attachments.map(att => `
+                            <div class="detail-item">
+                                <div class="detail-label">${att.filename}</div>
+                                <div class="detail-value">
+                                    <a href="${att.file_url}" target="_blank" style="color: var(--primary);">
+                                        <i class="fas fa-external-link-alt"></i> View File
+                                    </a>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+
+                ${stage3Data && (request.status === 'manager_approved' || request.status === 'completed' || request.status === 'pending_manager_approval' || request.status === 'stage3_filled') ? `
+                    <div class="detail-section">
+                        <h3 class="detail-title"><i class="fas fa-clipboard-check"></i> Stage 3 Environmental Data ${request.status === 'pending_manager_approval' || request.status === 'stage3_filled' ? '(Awaiting Manager Approval)' : '(Approved)'}</h3>
+                        <div style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); padding: 20px; border-radius: 16px; border-left: 4px solid var(--info); margin-bottom: 20px;">
+                            <div style="font-size: 14px; font-weight: 700; color: var(--info); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                <i class="fas fa-info-circle"></i> Technical Assessment Data
+                            </div>
+                            <div class="detail-grid">
+                                <div class="detail-item">
+                                    <div class="detail-label"><i class="fas fa-barcode"></i> WAP Number</div>
+                                    <div class="detail-value" style="font-weight: 700; font-size: 16px;">${stage3Data.wap_number || 'N/A'}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label"><i class="fas fa-exclamation-triangle"></i> Hazardous Classification</div>
+                                    <div class="detail-value" style="font-weight: 700; color: ${stage3Data.hazardous_classification === 'Hazardous' ? 'var(--danger)' : 'var(--success)'};">
+                                        ${stage3Data.hazardous_classification || 'N/A'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${stage3Data.treatment_codes && stage3Data.treatment_codes.length > 0 ? `
+                            <div style="margin-bottom: 20px;">
+                                <div class="detail-label" style="margin-bottom: 12px;"><i class="fas fa-wrench"></i> Treatment Codes</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${stage3Data.treatment_codes.map(code => `
+                                        <span style="background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #6366f1; padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; border: 2px solid #6366f1;">
+                                            ${code}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${stage3Data.discharge_codes && stage3Data.discharge_codes.length > 0 ? `
+                            <div style="margin-bottom: 20px;">
+                                <div class="detail-label" style="margin-bottom: 12px;"><i class="fas fa-trash-alt"></i> Disposal Codes</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${stage3Data.discharge_codes.map(code => `
+                                        <span style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #2563eb; padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; border: 2px solid #2563eb;">
+                                            ${code}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${stage3Data.recycle_codes && stage3Data.recycle_codes.length > 0 ? `
+                            <div style="margin-bottom: 20px;">
+                                <div class="detail-label" style="margin-bottom: 12px;"><i class="fas fa-recycle"></i> Recycle Codes</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${stage3Data.recycle_codes.map(code => `
+                                        <span style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #059669; padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; border: 2px solid #059669;">
+                                            ${code}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${stage3Data.recovered_materials && stage3Data.recovered_materials.length > 0 ? `
+                            <div style="margin-bottom: 20px;">
+                                <div class="detail-label" style="margin-bottom: 12px;"><i class="fas fa-recycle"></i> Recycle Codes</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${stage3Data.recovered_materials.map(material => `
+                                        <span style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #d97706; padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; border: 2px solid #d97706;">
+                                            <i class="fas fa-box"></i> ${material}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <div style="margin-top: 24px; padding-top: 24px; border-top: 3px solid var(--primary);">
+                            <div class="detail-label" style="margin-bottom: 16px; font-size: 16px; color: var(--primary);">
+                                <i class="fas fa-percentage"></i> Composition Distribution (%)
+                            </div>
+                            <div class="detail-grid">
+                                ${stage3Data.oil_percent !== null && stage3Data.oil_percent !== undefined ? `
+                                    <div class="detail-item" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left-color: #f59e0b;">
+                                        <div class="detail-label"><i class="fas fa-oil-can"></i> Oil</div>
+                                        <div class="detail-value" style="font-size: 20px; font-weight: 800; color: #d97706;">${stage3Data.oil_percent}%</div>
+                                    </div>
+                                ` : ''}
+                                ${stage3Data.water_percent !== null && stage3Data.water_percent !== undefined ? `
+                                    <div class="detail-item" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left-color: #3b82f6;">
+                                        <div class="detail-label"><i class="fas fa-tint"></i> Water</div>
+                                        <div class="detail-value" style="font-size: 20px; font-weight: 800; color: #2563eb;">${stage3Data.water_percent}%</div>
+                                    </div>
+                                ` : ''}
+                                ${stage3Data.sludge_percent !== null && stage3Data.sludge_percent !== undefined ? `
+                                    <div class="detail-item" style="background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%); border-left-color: #6b7280;">
+                                        <div class="detail-label"><i class="fas fa-layer-group"></i> Sludge</div>
+                                        <div class="detail-value" style="font-size: 20px; font-weight: 800; color: #4b5563;">${stage3Data.sludge_percent}%</div>
+                                    </div>
+                                ` : ''}
+                                ${stage3Data.solvent_percent !== null && stage3Data.solvent_percent !== undefined ? `
+                                    <div class="detail-item" style="background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); border-left-color: #6366f1;">
+                                        <div class="detail-label"><i class="fas fa-flask"></i> Solvent</div>
+                                        <div class="detail-value" style="font-size: 20px; font-weight: 800; color: #4f46e5;">${stage3Data.solvent_percent}%</div>
+                                    </div>
+                                ` : ''}
+                                ${stage3Data.recovery_percent !== null && stage3Data.recovery_percent !== undefined ? `
+                                    <div class="detail-item" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left-color: #10b981;">
+                                        <div class="detail-label"><i class="fas fa-recycle"></i> Recovery</div>
+                                        <div class="detail-value" style="font-size: 20px; font-weight: 800; color: #059669;">${stage3Data.recovery_percent}%</div>
+                                    </div>
+                                ` : ''}
+                                ${stage3Data.landfill_percent !== null && stage3Data.landfill_percent !== undefined ? `
+                                    <div class="detail-item" style="background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border-left-color: #6b7280;">
+                                        <div class="detail-label"><i class="fas fa-trash-alt"></i> Landfill</div>
+                                        <div class="detail-value" style="font-size: 20px; font-weight: 800; color: #4b5563;">${stage3Data.landfill_percent}%</div>
+                                    </div>
+                                ` : ''}
+                                ${stage3Data.evaporation_pond_percent !== null && stage3Data.evaporation_pond_percent !== undefined ? `
+                                    <div class="detail-item" style="background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); border-left-color: #06b6d4;">
+                                        <div class="detail-label"><i class="fas fa-water"></i> Evaporation Pond</div>
+                                        <div class="detail-value" style="font-size: 20px; font-weight: 800; color: #0891b2;">${stage3Data.evaporation_pond_percent}%</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${stage3AttachmentsArray && stage3AttachmentsArray.length > 0 ? `
+                            <div style="margin-top: 20px; padding-top: 20px; border-top: 3px solid var(--info); background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 12px; padding: 20px; border-left: 4px solid var(--info); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);">
+                                <div style="font-size: 16px; font-weight: 700; color: var(--info); margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-paperclip" style="font-size: 18px;"></i> Stage 3 Attachments (${stage3AttachmentsArray.length})
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                                    ${stage3AttachmentsArray.map(att => {
+                                        const fileUrl = att.file_url || '#';
+                                        const fileName = att.filename || att.file_name || 'Attachment';
+                                        return `
+                                        <a href="${fileUrl}" target="_blank" rel="noopener" 
+                                           style="background: white; border: 2px solid #2563eb; border-radius: 12px; padding: 12px 16px; display: inline-flex; align-items: center; gap: 10px; color: #0369a1; text-decoration: none; font-weight: 600; font-size: 14px; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); cursor: pointer; min-width: 180px;"
+                                           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.3)';"
+                                           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(37, 99, 235, 0.2)';">
+                                            <i class="fas fa-file" style="font-size: 16px; color: #2563eb;"></i>
+                                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${fileName}</span>
+                                            <i class="fas fa-external-link-alt" style="font-size: 12px;"></i>
+                                        </a>
+                                    `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${stage3Data.filled_at ? `
+                            <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e5e7eb; text-align: center;">
+                                <div style="font-size: 12px; color: var(--gray-500);">
+                                    <i class="fas fa-clock"></i> Data filled on: ${new Date(stage3Data.filled_at).toLocaleString()}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+
+                ${request.rejection_reason ? `
+                    <div class="rejection-reason">
+                        <div class="rejection-reason-label">
+                            <i class="fas fa-times-circle"></i> Rejection Reason
+                        </div>
+                        <div class="rejection-reason-text">${request.rejection_reason}</div>
+                    </div>
+                ` : ''}
+
+                <div class="timeline">
+                    <h3 class="detail-title"><i class="fas fa-history"></i> Timeline</h3>
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-title">Request Submitted</div>
+                            <div class="timeline-date">${new Date(request.submitted_at).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    ${request.reviewed_at ? `
+                        <div class="timeline-item">
+                            <div class="timeline-icon" style="background: ${request.status.includes('rejected') ? 'var(--danger)' : 'var(--success)'};">
+                                <i class="fas fa-${request.status.includes('rejected') ? 'times' : 'check'}"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">${request.status.includes('rejected') ? 'Request Rejected' : 'Request Reviewed'}</div>
+                                <div class="timeline-date">${new Date(request.reviewed_at).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${stage3Data && stage3Data.filled_at ? `
+                        <div class="timeline-item">
+                            <div class="timeline-icon" style="background: var(--info);">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Stage 3 Data Filled</div>
+                                <div class="timeline-date">Environmental data entered by technical team - ${new Date(stage3Data.filled_at).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${request.status === 'manager_approved' || request.status === 'completed' ? `
+                        <div class="timeline-item">
+                            <div class="timeline-icon" style="background: var(--success);">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Manager Approved</div>
+                                <div class="timeline-date">${request.manager_reviewed_at ? new Date(request.manager_reviewed_at).toLocaleString() : 'Approved by manager'}</div>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${request.status === 'completed' ? `
+                        <div class="timeline-item">
+                            <div class="timeline-icon" style="background: var(--success);">
+                                <i class="fas fa-check-double"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title">Request Completed</div>
+                                <div class="timeline-date">Approved and processed successfully</div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('viewModal').classList.remove('active');
+        }
+
+        // Show alert
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'success' : type === 'danger' ? 'danger' : 'warning';
+            alertContainer.innerHTML = `
+                <div class="notification-banner ${alertClass}">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'} notification-icon"></i>
+                    <div class="notification-text">${message}</div>
+                </div>
+            `;
+            setTimeout(() => {
+                alertContainer.innerHTML = '';
+            }, 5000);
+        }
+
+        // Filter button handlers
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.status;
+                filterRequests();
+            });
+        });
+
+        // Logout handler
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        });
+
+        // Close modal on outside click
+        document.getElementById('viewModal').addEventListener('click', (e) => {
+            if (e.target.id === 'viewModal') {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        (async () => {
+            if (await checkAuth()) {
+                await loadRequests();
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reviva - User Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="utils.js"></script>
+    <style>
+        :root {
+            --primary: #3d9b7c;
+            --secondary: #5fc1a8;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e8f5f0 0%, #d4ede3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 24px 32px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-logout {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-logout:hover {
+            background: #b91c1c;
+        }
+
+        .btn-back {
+            background: var(--gray-600);
+            color: white;
+        }
+
+        .btn-back:hover {
+            background: var(--gray-700);
+        }
+
+        .users-table {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: var(--primary);
+            color: white;
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1fr;
+            gap: 16px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .table-row {
+            padding: 20px 24px;
+            display: grid;
+            grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1fr;
+            gap: 16px;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            transition: background 0.2s ease;
+        }
+
+        .table-row:hover {
+            background: #f9fafb;
+        }
+
+        .table-row:last-child {
+            border-bottom: none;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .user-email {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-user {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .role-technical {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .role-manager {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .role-admin {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .role-select {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+            min-width: 140px;
+        }
+
+        .role-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-save {
+            padding: 8px 16px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save:hover {
+            background: #059669;
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: var(--success);
+            border-left: 4px solid var(--success);
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            color: var(--danger);
+            border-left: 4px solid var(--danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-600);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .table-header,
+            .table-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .table-header {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <img src="Logo.png" alt="Reviva Logo" style="max-width: 60px; height: auto;">
+                <h1><i class="fas fa-users-cog"></i> User Management</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-back" onclick="window.location.href='request-form.html'">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+                <button class="btn btn-logout" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="users-table">
+            <div class="table-header">
+                <div>User</div>
+                <div>Email</div>
+                <div>Current Role</div>
+                <div>Change Role</div>
+                <div>Action</div>
+            </div>
+            <div id="usersList">
+                <!-- Users will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check admin access
+        async function init() {
+            const hasAccess = await requireAuth(ROLES.ADMIN);
+            if (!hasAccess) {
+                return;
+            }
+
+            loadUsers();
+        }
+
+        // Load all users
+        async function loadUsers() {
+            const usersList = document.getElementById('usersList');
+            usersList.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading users...</p></div>';
+
+            // Get all users from auth and their roles
+            const { data: { users }, error: authError } = await supabaseClient.auth.admin.listUsers();
+            
+            if (authError) {
+                // If admin API not available, use alternative method
+                await loadUsersAlternative();
+                return;
+            }
+
+            // Get roles for all users
+            const userIds = users.map(u => u.id);
+            const { data: roles, error: rolesError } = await supabaseClient
+                .from('user_roles')
+                .select('*')
+                .in('user_id', userIds);
+
+            const rolesMap = {};
+            if (roles) {
+                roles.forEach(r => {
+                    rolesMap[r.user_id] = r.role;
+                });
+            }
+
+            if (users.length === 0) {
+                usersList.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>No users found</p></div>';
+                return;
+            }
+
+            usersList.innerHTML = users.map(user => {
+                const role = rolesMap[user.id] || 'user';
+                const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+                
+                return `
+                    <div class="table-row" data-user-id="${user.id}">
+                        <div class="user-info">
+                            <div class="user-name">${userName}</div>
+                            <div class="user-email">${user.email}</div>
+                        </div>
+                        <div>${user.email}</div>
+                        <div>
+                            <span class="role-badge role-${role}">${getRoleDisplayName(role)}</span>
+                        </div>
+                        <div>
+                            <select class="role-select" id="role-${user.id}" data-user-id="${user.id}">
+                                <option value="user" ${role === 'user' ? 'selected' : ''}>User</option>
+                                <option value="technical" ${role === 'technical' ? 'selected' : ''}>Technical</option>
+                                <option value="manager" ${role === 'manager' ? 'selected' : ''}>Manager</option>
+                                <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn-save" onclick="updateUserRole('${user.id}')">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Alternative method to load users (if admin API not available)
+        async function loadUsersAlternative() {
+            const { data: roles, error } = await supabaseClient
+                .from('user_roles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                showAlert('Error loading users', 'danger');
+                return;
+            }
+
+            const usersList = document.getElementById('usersList');
+            
+            if (!roles || roles.length === 0) {
+                usersList.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>No users found</p></div>';
+                return;
+            }
+
+            // Get user details from auth.users metadata
+            usersList.innerHTML = roles.map(roleData => {
+                // Note: We can't directly access auth.users, so we'll show what we have
+                return `
+                    <div class="table-row" data-user-id="${roleData.user_id}">
+                        <div class="user-info">
+                            <div class="user-name">User ID: ${roleData.user_id.substring(0, 8)}...</div>
+                            <div class="user-email">${roleData.user_id}</div>
+                        </div>
+                        <div>${roleData.user_id}</div>
+                        <div>
+                            <span class="role-badge role-${roleData.role}">${getRoleDisplayName(roleData.role)}</span>
+                        </div>
+                        <div>
+                            <select class="role-select" id="role-${roleData.user_id}" data-user-id="${roleData.user_id}">
+                                <option value="user" ${roleData.role === 'user' ? 'selected' : ''}>User</option>
+                                <option value="technical" ${roleData.role === 'technical' ? 'selected' : ''}>Technical</option>
+                                <option value="manager" ${roleData.role === 'manager' ? 'selected' : ''}>Manager</option>
+                                <option value="admin" ${roleData.role === 'admin' ? 'selected' : ''}>Admin</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn-save" onclick="updateUserRole('${roleData.user_id}')">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update user role
+        async function updateUserRole(userId) {
+            const roleSelect = document.getElementById(`role-${userId}`);
+            const newRole = roleSelect.value;
+
+            const { error } = await supabaseClient
+                .from('user_roles')
+                .upsert({
+                    user_id: userId,
+                    role: newRole,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id'
+                });
+
+            if (error) {
+                showAlert('Error updating user role', 'danger');
+                console.error(error);
+                return;
+            }
+
+            showAlert(`User role updated to ${getRoleDisplayName(newRole)} successfully!`, 'success');
+            
+            // Update the badge
+            const row = document.querySelector(`[data-user-id="${userId}"]`);
+            const badge = row.querySelector('.role-badge');
+            badge.className = `role-badge role-${newRole}`;
+            badge.textContent = getRoleDisplayName(newRole);
+        }
+
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            window.location.href = 'login.html';
+        });
+
+        // Show alert
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `<div class="alert alert-${type}"><i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 3000);
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
