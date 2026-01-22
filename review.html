@@ -617,8 +617,8 @@
                 <h1><i class="fas fa-clipboard-check"></i> Review Requests</h1>
             </div>
             <div style="display: flex; gap: 12px;">
-                <button class="btn btn-view" onclick="window.location.href='request-form.html'" style="background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">
-                    <i class="fas fa-arrow-left"></i> Back to Form
+                <button class="btn btn-view" onclick="window.location.href='dashboard.html'" style="background: linear-gradient(135deg, #66a286, #63a597); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; box-shadow: 0 4px 12px rgba(102, 162, 134, 0.3);">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
                 </button>
                 <button class="logout-btn" id="logoutBtn">
                     <i class="fas fa-sign-out-alt"></i> Logout
@@ -929,6 +929,38 @@
             const request = requests.find(r => r.id === formId);
             if (!request) return;
 
+            // Load all attachments for this form (both general and item-specific)
+            let allAttachments = [];
+            try {
+                const { data, error } = await supabaseClient
+                    .from('ms_form_attachments')
+                    .select('*')
+                    .eq('form_id', formId);
+                
+                if (error) {
+                    console.error('Error loading attachments:', error);
+                } else {
+                    allAttachments = data || [];
+                }
+            } catch (error) {
+                console.error('Error loading attachments:', error);
+            }
+
+            // Separate general attachments (no item_id) from item-specific attachments
+            const generalAttachments = (allAttachments || []).filter(att => !att.item_id);
+            
+            // Load attachments for each item
+            const itemsWithAttachments = await Promise.all(
+                (request.ms_form_items || []).map(async (item) => {
+                    const itemAttachments = (allAttachments || []).filter(att => att.item_id === item.id);
+                    
+                    return {
+                        ...item,
+                        attachments: itemAttachments || []
+                    };
+                })
+            );
+
             const details = `
                 <div style="background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%); border-radius: 20px; padding: 28px; margin-bottom: 28px; border: 2px solid #e5e7eb; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
                     <div style="font-size: 20px; font-weight: 700; color: var(--primary); margin-bottom: 24px; display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 3px solid var(--primary);">
@@ -971,16 +1003,16 @@
                                 <div style="padding: 16px; background: white; border-radius: 12px; color: var(--gray-700); line-height: 1.8; border: 2px solid #e5e7eb;">${request.description}</div>
                             </div>
                         ` : ''}
-                        ${request.ms_form_attachments?.length > 0 ? `
+                        ${generalAttachments && generalAttachments.length > 0 ? `
                             <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
                                 <div style="font-weight: 700; margin-bottom: 12px; color: var(--gray-700); display: flex; align-items: center; gap: 10px;">
-                                    <i class="fas fa-paperclip"></i> Attachments (${request.ms_form_attachments.length})
+                                    <i class="fas fa-paperclip"></i> General Attachments (${generalAttachments.length})
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                                    ${request.ms_form_attachments.map((att, idx) => `
+                                    ${generalAttachments.map((att, idx) => `
                                         <a href="${att.file_url}" target="_blank" rel="noopener noreferrer" style="padding: 12px 16px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; text-decoration: none; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(61, 155, 124, 0.2);">
                                             <i class="fas fa-file"></i> 
-                                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${att.file_name || `Attachment ${idx + 1}`}</span>
+                                            <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${att.filename || att.file_name || `Attachment ${idx + 1}`}</span>
                                             <i class="fas fa-external-link-alt"></i>
                                         </a>
                                     `).join('')}
@@ -999,7 +1031,7 @@
                 </div>
                 <div class="items-list">
                     <h3><i class="fas fa-box"></i> Waste Items (${request.ms_form_items?.length || 0})</h3>
-                    ${request.ms_form_items?.map((item, idx) => `
+                    ${itemsWithAttachments.map((item, idx) => `
                         <div class="item-card">
                             <div class="item-title">${item.waste_name || 'N/A'}</div>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
@@ -1024,6 +1056,29 @@
                                     <div style="font-size: 15px; font-weight: 700; color: var(--gray-800);">${item.truck_type || 'N/A'}</div>
                                 </div>
                             </div>
+                            ${item.attachments && item.attachments.length > 0 ? `
+                                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                                    <div style="font-weight: 700; margin-bottom: 12px; color: var(--primary); display: flex; align-items: center; gap: 10px; font-size: 14px;">
+                                        <i class="fas fa-paperclip"></i> Attachments (${item.attachments.length})
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                        ${item.attachments.map((att, attIdx) => `
+                                            <a href="${att.file_url}" target="_blank" rel="noopener noreferrer" style="padding: 12px 16px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; text-decoration: none; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(61, 155, 124, 0.2);">
+                                                <i class="fas fa-file"></i> 
+                                                <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${att.filename || att.file_name || `Attachment ${attIdx + 1}`}</span>
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
+                                    <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 12px; color: var(--gray-600); font-size: 13px;">
+                                        <i class="fas fa-paperclip" style="opacity: 0.3; margin-right: 8px;"></i>
+                                        No attachments for this item
+                                    </div>
+                                </div>
+                            `}
                         </div>
                     `).join('') || '<div style="padding: 40px; text-align: center; color: var(--gray-600);"><i class="fas fa-inbox" style="font-size: 48px; opacity: 0.5; margin-bottom: 16px;"></i><p style="font-size: 16px; font-weight: 600;">No items found</p></div>'}
                 </div>

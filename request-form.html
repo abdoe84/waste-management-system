@@ -305,6 +305,9 @@
                 <h1>M.S Form</h1>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
+                <a href="dashboard.html" style="padding: 10px 20px; background: linear-gradient(135deg, #66a286, #63a597); color: white; border-radius: 8px; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 8px; font-weight: 500; box-shadow: 0 4px 12px rgba(102, 162, 134, 0.3); transition: all 0.3s ease;">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
                 <a href="review.html" style="padding: 10px 20px; background: #3d9b7c; color: white; border-radius: 8px; text-decoration: none; font-size: 14px; display: flex; align-items: center; gap: 8px; font-weight: 500;">
                     <i class="fas fa-clipboard-check"></i> Review Requests
                 </a>
@@ -560,10 +563,20 @@
                 id: Date.now()
             };
 
+            console.log('[Add Item] Adding item:', {
+                wasteName: newItem.wasteName,
+                hasDocument: !!newItem.supportingDocument,
+                fileName: newItem.supportingDocument?.name,
+                fileSize: newItem.supportingDocument?.size
+            });
+
             state.items.push(newItem);
             resetCurrentItem();
             updateItemsList();
             itemsListSection.classList.remove('hidden');
+            
+            console.log('[Add Item] Total items in state:', state.items.length);
+            console.log('[Add Item] Items with attachments:', state.items.filter(i => i.supportingDocument).length);
         }
 
         // Remove item
@@ -632,6 +645,14 @@
                             <span class="item-label">Truck Type:</span>
                             <span class="item-value">${item.truckType || 'N/A'}</span>
                         </div>
+                        ${item.supportingDocument ? `
+                        <div class="item-field" style="grid-column: 1 / -1;">
+                            <span class="item-label">Attachment:</span>
+                            <span class="item-value" style="color: #3d9b7c; font-weight: 600;">
+                                <i class="fas fa-paperclip"></i> ${item.supportingDocument.name} (${(item.supportingDocument.size / 1024).toFixed(2)} KB)
+                            </span>
+                        </div>
+                        ` : ''}
                     </div>
                     <button class="btn-delete" onclick="removeItem(${item.id})">
                         <i class="fas fa-trash"></i>
@@ -639,6 +660,172 @@
                 `;
                 itemsList.appendChild(itemElement);
             });
+        }
+
+        // Upload attachment to Supabase Storage
+        // All attachments (form and stage3) are stored in the same bucket but in separate folders:
+        // - Form attachments: form/form-{formId}/item-{itemId}/{filename}
+        // - Stage3 attachments: stage3/form-{formId}/item-{itemId}/{filename}
+        const ATTACHMENTS_BUCKET = 'ms_attachments';
+        
+        async function uploadAttachment(file, formId, itemId = null) {
+            if (!file) {
+                console.warn('[Upload] No file provided');
+                return null;
+            }
+            
+            try {
+                console.log(`[Upload] ========== Starting upload ==========`);
+                console.log(`[Upload] File: ${file.name}`);
+                console.log(`[Upload] Size: ${(file.size / 1024).toFixed(2)} KB`);
+                console.log(`[Upload] Type: ${file.type || 'unknown'}`);
+                console.log(`[Upload] Form ID: ${formId}`);
+                console.log(`[Upload] Item ID: ${itemId || 'N/A'}`);
+                console.log(`[Upload] Bucket: ${ATTACHMENTS_BUCKET}`);
+                
+                // Generate unique file path
+                // Structure: form/form-{formId}/item-{itemId}/{timestamp}-{filename}
+                const fileExt = file.name.split('.').pop();
+                const timestamp = Date.now();
+                const randomStr = Math.random().toString(36).substring(7);
+                const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const fileName = `${timestamp}-${randomStr}-${safeFileName}`;
+                
+                // Create separate folder structure for form attachments (not stage3)
+                const filePath = itemId 
+                    ? `form/form-${formId}/item-${itemId}/${fileName}`
+                    : `form/form-${formId}/${fileName}`;
+                
+                console.log(`[Upload] Uploading file: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+                console.log(`[Upload] Storage path: ${filePath}`);
+                
+                // Upload to storage
+                console.log(`[Upload] Attempting to upload to: ${ATTACHMENTS_BUCKET}/${filePath}`);
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                    .from(ATTACHMENTS_BUCKET)
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                
+                if (uploadError) {
+                    console.error('[Upload] ❌ Storage upload error:', uploadError);
+                    console.error('[Upload] Error code:', uploadError.statusCode);
+                    console.error('[Upload] Error message:', uploadError.message);
+                    
+                    // Provide more specific error messages
+                    if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('does not exist')) {
+                        const errorMsg = `Storage bucket '${ATTACHMENTS_BUCKET}' not found. Please create it in Supabase Storage and make it PUBLIC.`;
+                        console.error(`[Upload] ${errorMsg}`);
+                        throw new Error(errorMsg);
+                    } else if (uploadError.message?.includes('new row violates row-level security')) {
+                        const errorMsg = `Permission denied. Please check Storage policies for bucket '${ATTACHMENTS_BUCKET}'.`;
+                        console.error(`[Upload] ${errorMsg}`);
+                        throw new Error(errorMsg);
+                    } else {
+                        throw uploadError;
+                    }
+                }
+                
+                console.log('[Upload] ✅ File uploaded to storage successfully');
+                console.log('[Upload] Upload data:', uploadData);
+                
+                // Get public URL
+                const { data: urlData } = supabaseClient.storage
+                    .from(ATTACHMENTS_BUCKET)
+                    .getPublicUrl(filePath);
+                
+                const fileUrl = urlData?.publicUrl || '';
+                if (!fileUrl) {
+                    console.warn('[Upload] ⚠️ Warning: No public URL returned');
+                    console.warn('[Upload] URL Data:', urlData);
+                } else {
+                    console.log('[Upload] ✅ Public URL:', fileUrl);
+                }
+                
+                // Get current user
+                let userId = null;
+                try {
+                    const { data: { user } } = await supabaseClient.auth.getUser();
+                    if (user) userId = user.id;
+                } catch (e) {
+                    // User not logged in - that's okay
+                }
+                
+                // Insert attachment metadata
+                console.log('[Upload] Preparing to save metadata to database...');
+                const attachmentData = {
+                    form_id: formId,
+                    item_id: itemId,
+                    filename: file.name,
+                    file_name: file.name,
+                    file_type: file.type || 'application/octet-stream',
+                    file_size: file.size,
+                    file_url: fileUrl,
+                    storage_path: filePath,
+                    uploaded_by: userId
+                };
+                
+                console.log('[Upload] Attachment data:', JSON.stringify(attachmentData, null, 2));
+                
+                const { data: insertedData, error: insertError } = await supabaseClient
+                    .from('ms_form_attachments')
+                    .insert([attachmentData])
+                    .select();
+                
+                if (insertError) {
+                    console.error('[Upload] ❌ Database insert error:', insertError);
+                    console.error('[Upload] Error code:', insertError.code);
+                    console.error('[Upload] Error message:', insertError.message);
+                    console.error('[Upload] Error details:', insertError);
+                    
+                    // Check if table doesn't exist
+                    if (insertError.message?.includes('relation') || insertError.message?.includes('does not exist') || insertError.code === '42P01') {
+                        const errorMsg = 'Table ms_form_attachments does not exist! Please run setup_form_attachments.sql in Supabase SQL Editor.';
+                        console.error(`[Upload] ${errorMsg}`);
+                        // Try to delete uploaded file if database insert fails
+                        try {
+                            await supabaseClient.storage.from(ATTACHMENTS_BUCKET).remove([filePath]);
+                            console.log('[Upload] Cleaned up uploaded file after database error');
+                        } catch (cleanupError) {
+                            console.error('[Upload] Error cleaning up file:', cleanupError);
+                        }
+                        throw new Error(errorMsg);
+                    }
+                    
+                    // Check for permission errors
+                    if (insertError.code === '42501' || insertError.message?.includes('permission') || insertError.message?.includes('row-level security')) {
+                        const errorMsg = 'Permission denied. Please check RLS policies for ms_form_attachments table.';
+                        console.error(`[Upload] ${errorMsg}`);
+                        // Try to delete uploaded file if database insert fails
+                        try {
+                            await supabaseClient.storage.from(ATTACHMENTS_BUCKET).remove([filePath]);
+                            console.log('[Upload] Cleaned up uploaded file after database error');
+                        } catch (cleanupError) {
+                            console.error('[Upload] Error cleaning up file:', cleanupError);
+                        }
+                        throw new Error(errorMsg);
+                    }
+                    
+                    // Try to delete uploaded file if database insert fails
+                    try {
+                        await supabaseClient.storage.from(ATTACHMENTS_BUCKET).remove([filePath]);
+                        console.log('[Upload] Cleaned up uploaded file after database error');
+                    } catch (cleanupError) {
+                        console.error('[Upload] Error cleaning up file:', cleanupError);
+                    }
+                    throw insertError;
+                }
+                
+                console.log('[Upload] ✅ Attachment metadata saved to database successfully');
+                console.log('[Upload] Inserted data:', insertedData);
+                console.log('[Upload] ========== Upload complete ==========');
+                return insertedData[0];
+                
+            } catch (error) {
+                console.error('[Upload] ❌ Error uploading attachment:', error);
+                throw error;
+            }
         }
 
         // Handle submit
@@ -664,6 +851,19 @@
                 showAlert('Database connection error. Please refresh the page.');
                 return;
             }
+
+            // Debug: Check items and attachments before submit
+            console.log('[Submit] ========== Starting form submission ==========');
+            console.log('[Submit] Total items:', state.items.length);
+            state.items.forEach((item, idx) => {
+                console.log(`[Submit] Item ${idx + 1}:`, {
+                    wasteName: item.wasteName,
+                    hasDocument: !!item.supportingDocument,
+                    fileName: item.supportingDocument?.name,
+                    fileSize: item.supportingDocument?.size,
+                    fileType: item.supportingDocument?.type
+                });
+            });
 
             try {
                 submitBtn.disabled = true;
@@ -699,8 +899,10 @@
                 }
 
                 const formId = formData[0].id;
+                console.log('[Submit] Form created with ID:', formId);
 
                 // Insert items
+                let insertedItems = [];
                 if (state.items.length > 0) {
                     const itemsToInsert = state.items.map(item => ({
                         form_id: formId,
@@ -714,18 +916,88 @@
                         supporting_document: null
                     }));
 
-                    const { error: itemsError } = await supabaseClient
+                    const { data: insertedItemsData, error: itemsError } = await supabaseClient
                         .from('ms_form_items')
-                        .insert(itemsToInsert);
+                        .insert(itemsToInsert)
+                        .select();
 
                     if (itemsError) {
                         console.error('Items error:', itemsError);
                         throw itemsError;
                     }
+                    
+                    insertedItems = insertedItemsData || [];
+                    console.log('[Submit] Items inserted:', insertedItems.length);
                 }
 
+                // Upload attachments for each item
+                let uploadedAttachments = 0;
+                let attachmentErrors = [];
+                
+                console.log(`[Submit] ========== Starting attachments upload ==========`);
+                console.log(`[Submit] Total items: ${state.items.length}`);
+                console.log(`[Submit] Inserted items: ${insertedItems.length}`);
+                
+                for (let i = 0; i < state.items.length; i++) {
+                    const item = state.items[i];
+                    const insertedItem = insertedItems[i];
+                    
+                    console.log(`[Submit] Processing item ${i + 1}/${state.items.length}:`, {
+                        itemId: insertedItem?.id,
+                        hasDocument: !!item.supportingDocument,
+                        fileName: item.supportingDocument?.name
+                    });
+                    
+                    if (item.supportingDocument && insertedItem) {
+                        try {
+                            console.log(`[Submit] Uploading attachment for item ${insertedItem.id}: ${item.supportingDocument.name}`);
+                            const result = await uploadAttachment(item.supportingDocument, formId, insertedItem.id);
+                            if (result) {
+                                uploadedAttachments++;
+                                console.log(`[Submit] ✅ Attachment uploaded successfully for item ${insertedItem.id}`);
+                            } else {
+                                throw new Error('Upload function returned null');
+                            }
+                        } catch (attachError) {
+                            console.error(`[Submit] ❌ Error uploading attachment for item ${insertedItem.id}:`, attachError);
+                            attachmentErrors.push({
+                                itemId: insertedItem.id,
+                                fileName: item.supportingDocument.name,
+                                error: attachError.message || attachError.toString() || 'Unknown error'
+                            });
+                            // Continue with other items even if one attachment fails
+                        }
+                    } else {
+                        if (!item.supportingDocument) {
+                            console.log(`[Submit] ⚠️ Item ${insertedItem?.id || i + 1} has no supporting document`);
+                        }
+                        if (!insertedItem) {
+                            console.error(`[Submit] ❌ Item ${i + 1} was not inserted into database!`);
+                        }
+                    }
+                }
+                
+                console.log(`[Submit] ========== Attachments upload complete ==========`);
+                console.log(`[Submit] Successfully uploaded: ${uploadedAttachments}`);
+                console.log(`[Submit] Failed: ${attachmentErrors.length}`);
+                
+                if (uploadedAttachments > 0) {
+                    console.log(`[Submit] Successfully uploaded ${uploadedAttachments} attachment(s)`);
+                }
+                
                 // Success
-                showAlert('Form submitted successfully!', 'success');
+                let successMessage = 'Form submitted successfully!';
+                if (uploadedAttachments > 0) {
+                    successMessage += ` ${uploadedAttachments} attachment(s) uploaded.`;
+                }
+                
+                if (attachmentErrors.length > 0) {
+                    console.warn(`[Submit] ${attachmentErrors.length} attachment(s) failed to upload:`, attachmentErrors);
+                    const errorDetails = attachmentErrors.map(e => `${e.fileName}: ${e.error}`).join('; ');
+                    showAlert(`Form submitted successfully! However, ${attachmentErrors.length} attachment(s) failed to upload. Check console for details. Error: ${errorDetails.substring(0, 100)}...`, 'error');
+                } else {
+                    showAlert(successMessage, 'success');
+                }
                 successModal.classList.remove('hidden');
 
                 // Reset form after 3 seconds
@@ -791,7 +1063,14 @@
         packingTypeSelect.addEventListener('change', (e) => updateCurrentItem('packingType', e.target.value));
         truckTypeSelect.addEventListener('change', (e) => updateCurrentItem('truckType', e.target.value));
         supportingDocumentInput.addEventListener('change', (e) => {
-            updateCurrentItem('supportingDocument', e.target.files[0]);
+            const file = e.target.files[0];
+            if (file) {
+                console.log('[Form] File selected:', file.name, `(${(file.size / 1024).toFixed(2)} KB)`);
+                updateCurrentItem('supportingDocument', file);
+            } else {
+                console.log('[Form] No file selected');
+                updateCurrentItem('supportingDocument', null);
+            }
         });
 
         addItemBtn.addEventListener('click', addItem);
